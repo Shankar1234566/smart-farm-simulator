@@ -52,6 +52,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def vercel_path_normalizer(request, call_next):
+    matched_path = request.headers.get("x-matched-path")
+    curr_path = request.scope.get("path", "")
+    if matched_path and (curr_path.endswith(".py") or curr_path in ("/api", "/api/index.py")):
+        request.scope["path"] = matched_path
+    elif curr_path in ("/api/index.py", "api/index.py"):
+        request.scope["path"] = "/"
+    return await call_next(request)
+
+
 # Initialize database safely (fallback to in-memory on read-only serverless filesystems)
 try:
     init_db()

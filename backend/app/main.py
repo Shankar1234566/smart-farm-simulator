@@ -1,24 +1,47 @@
+import os
+import sys
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+
+# Ensure backend root and project root are in sys.path
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+PROJECT_ROOT = BACKEND_DIR.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-import os
 
-from ..simulation.farm_state import FarmManager, CROP_PROFILES
-from ..simulation.climate_engine import ClimateEngine
-from ..simulation.satellite_engine import SatelliteEngine
-from ..simulation.consequence_engine import ConsequenceEngine
-from ..simulation.whatif_simulator import WhatIfSimulator
-from ..simulation.scalability_manager import ScalabilityManager
-from ..ml.prediction_engine import PredictionEngine
-from ..ml.optimization_engine import OptimizationLabEngine
-from .database import init_db, log_action, export_zones_csv
+try:
+    from simulation.farm_state import FarmManager, CROP_PROFILES
+    from simulation.climate_engine import ClimateEngine
+    from simulation.satellite_engine import SatelliteEngine
+    from simulation.consequence_engine import ConsequenceEngine
+    from simulation.whatif_simulator import WhatIfSimulator
+    from simulation.scalability_manager import ScalabilityManager
+    from ml.prediction_engine import PredictionEngine
+    from ml.optimization_engine import OptimizationLabEngine
+    from app.database import init_db, log_action, export_zones_csv
+except ImportError:
+    from backend.simulation.farm_state import FarmManager, CROP_PROFILES
+    from backend.simulation.climate_engine import ClimateEngine
+    from backend.simulation.satellite_engine import SatelliteEngine
+    from backend.simulation.consequence_engine import ConsequenceEngine
+    from backend.simulation.whatif_simulator import WhatIfSimulator
+    from backend.simulation.scalability_manager import ScalabilityManager
+    from backend.ml.prediction_engine import PredictionEngine
+    from backend.ml.optimization_engine import OptimizationLabEngine
+    from backend.app.database import init_db, log_action, export_zones_csv
 
 app = FastAPI(
     title="SMART FARM SIM API",
     description="Climate-Aware Virtual Smart Farm Simulator for Edge AI Optimization",
-    version="1.0.0"
+    version="1.0.0",
+    redirect_slashes=False,
 )
 
 app.add_middleware(
@@ -29,8 +52,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize database
-init_db()
+# Initialize database safely (fallback to in-memory on read-only serverless filesystems)
+try:
+    init_db()
+except Exception as e:
+    print(f"[WARN] Database initialization notice: {e}")
+
 
 # Global Simulator State Singleton
 class SimulatorContext:
@@ -95,11 +122,28 @@ class OptimizeRequest(BaseModel):
 class ConnectivityRequest(BaseModel):
     status: str # 'GOOD', 'WEAK', 'INTERMITTENT', 'OFFLINE'
 
+@app.get("/")
+def get_root():
+    return {
+        "service": "SMART FARM SIM API",
+        "status": "online",
+        "version": "1.0.0",
+        "mode": "DEMO / SIMULATED",
+        "docs": "/docs",
+        "health": "/health",
+        "api_health": "/api/health"
+    }
+
+@app.get("/health")
+def get_health_check():
+    return get_health()
+
 @app.get("/api/health")
 def get_health():
     return {
         "status": "healthy",
         "service": "SMART FARM SIM Engine",
+        "mode": "DEMO / SIMULATED",
         "current_day": ctx.farm.current_day,
         "farm_size": ctx.farm.farm_size,
         "crop": ctx.farm.crop_type,
@@ -379,6 +423,7 @@ def export_data(fmt: str):
         return {"day": ctx.farm.current_day, "summary": ctx.farm.get_summary(), "zones": zones_data}
 
 # Mount static frontend build if present
-frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend", "dist")
-if os.path.exists(frontend_dist):
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+frontend_dist = PROJECT_ROOT / "frontend" / "dist"
+if frontend_dist.is_dir():
+    app.mount("/static", StaticFiles(directory=str(frontend_dist), html=True), name="static")
+

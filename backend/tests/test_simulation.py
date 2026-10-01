@@ -1,13 +1,34 @@
 import unittest
 import numpy as np
-from backend.simulation.farm_state import FarmManager, ZoneData
-from backend.simulation.climate_engine import ClimateEngine
-from backend.simulation.satellite_engine import SatelliteEngine
-from backend.simulation.consequence_engine import ConsequenceEngine
-from backend.simulation.whatif_simulator import WhatIfSimulator
-from backend.simulation.scalability_manager import ScalabilityManager
-from backend.ml.prediction_engine import PredictionEngine
-from backend.ml.optimization_engine import OptimizationLabEngine
+import sys
+from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+PROJECT_ROOT = BACKEND_DIR.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+
+try:
+    from simulation.farm_state import FarmManager, ZoneData
+    from simulation.climate_engine import ClimateEngine
+    from simulation.satellite_engine import SatelliteEngine
+    from simulation.consequence_engine import ConsequenceEngine
+    from simulation.whatif_simulator import WhatIfSimulator
+    from simulation.scalability_manager import ScalabilityManager
+    from ml.prediction_engine import PredictionEngine
+    from ml.optimization_engine import OptimizationLabEngine
+except ImportError:
+    from backend.simulation.farm_state import FarmManager, ZoneData
+    from backend.simulation.climate_engine import ClimateEngine
+    from backend.simulation.satellite_engine import SatelliteEngine
+    from backend.simulation.consequence_engine import ConsequenceEngine
+    from backend.simulation.whatif_simulator import WhatIfSimulator
+    from backend.simulation.scalability_manager import ScalabilityManager
+    from backend.ml.prediction_engine import PredictionEngine
+    from backend.ml.optimization_engine import OptimizationLabEngine
+
 
 def test_farm_initialization():
     fm = FarmManager(size=100, crop="Rice")

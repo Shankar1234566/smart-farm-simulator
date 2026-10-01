@@ -1,0 +1,14 @@
+[project]
+name = "smart-farm-api"
+version = "1.0.0"
+description = "Climate-Aware Virtual Smart Farm Simulator for Edge AI Optimization"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "pydantic>=2.6.0",
+    "numpy>=1.26.0",
+]
+
+[tool.vercel]
+entrypoint = "api.index:app"

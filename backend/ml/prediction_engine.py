@@ -2,7 +2,14 @@ import numpy as np
 import time
 import math
 from typing import List, Dict, Any, Tuple
-from .feature_fusion import FEATURE_NAMES, TOP_EDGE_FEATURES, FeatureFusionEngine
+try:
+    from .feature_fusion import FEATURE_NAMES, TOP_EDGE_FEATURES, FeatureFusionEngine
+except ImportError:
+    try:
+        from ml.feature_fusion import FEATURE_NAMES, TOP_EDGE_FEATURES, FeatureFusionEngine
+    except ImportError:
+        from backend.ml.feature_fusion import FEATURE_NAMES, TOP_EDGE_FEATURES, FeatureFusionEngine
+
 
 class FastDecisionStump:
     """Lightweight single decision split for vectorized ensembles."""
